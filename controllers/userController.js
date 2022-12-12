@@ -33,7 +33,7 @@ class UserController {
 
                     } catch (error) {
                         console.log(error)
-                        resp.send({ "status": "failed", "message": "Unable to register" })
+                        resp.send({ "status": "failed", "message": "Unable to registerr" })
                     }
 
                 } else {
