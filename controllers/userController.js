@@ -33,7 +33,7 @@ class UserController {
 
                     } catch (error) {
                         console.log(error)
-                        resp.send({ "status": "failed", "message": "Unable to registerr" })
+                        resp.send({ "status": "failed", "message": "Unable to register" })
                     }
 
                 } else {
@@ -107,6 +107,18 @@ class UserController {
 
         if(email){
             const user = await UserModel.findOne({email:email})
+            console.log(user)
+            if(user){
+                const secret = user._id + process.env.JWT_SECRET_KEY
+                const token = jwt.sign({userId: user._id}, secret, {expiresIn: '10m'})
+                const link = `http://127.0.0.1:3000/api/user/reset/${user._id}/${token}`
+
+                console.log(link)
+                resp.send({"status": "success", "message": "Email for reset password is sent ..Please check"})
+            }
+            else{
+                resp.send({"status": "failed", "message": "Email does not exist"})
+            }
         }
         else{
             resp.send({"status": "failed", "message": "Email field is required"})
