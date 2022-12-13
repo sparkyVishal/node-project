@@ -1,6 +1,7 @@
 import UserModel from "../models/User.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import transporter from "../config/emailConfig.js";
 
 class UserController {
     static userRegistration = async (req, resp) => {
@@ -114,7 +115,18 @@ class UserController {
                 const link = `http://127.0.0.1:3000/api/user/reset/${user._id}/${token}`
 
                 console.log(link)
-                resp.send({"status": "success", "message": "Email for reset password is sent ..Please check"})
+
+
+                //send email
+                let info = await transporter.sendMail({
+                    from : process.env.EMAIL_FROM,
+                    to: user.email,
+                    subject: "TESTING NODEMAILER",
+                    html: `<a href = ${link}>Click here </a> to reset your password`
+                })
+
+
+                resp.send({"status": "success", "message": "Email for reset password is sent ..Please check", "info":info})
             }
             else{
                 resp.send({"status": "failed", "message": "Email does not exist"})
@@ -122,6 +134,38 @@ class UserController {
         }
         else{
             resp.send({"status": "failed", "message": "Email field is required"})
+        }
+    }
+
+    static userPasswordReset = async (req,resp) => {
+        const {password, password_confirmation} = req.body
+        const {id, token} = req.params
+
+        const user = await UserModel.findById(id)
+        const new_secret = user._id + process.env.JWT_SECRET_KEY
+
+        try{
+            jwt.verify(token, new_secret)
+            if(password && password_confirmation)
+                {
+                    if(password === password_confirmation){
+                        const salt = await bcrypt.genSalt(10)
+                        const newHashPassword = await bcrypt.hash(password, salt)
+                        await UserModel.findByIdAndUpdate(user._id, {$set :{password:newHashPassword}})
+
+                        resp.send({"status": "success", "message": "password reset succesfully"})
+                    }
+                    else{
+                        resp.send({"status": "failed", "message": "New password and New confirm password must be match"})
+                    }
+                }
+            else
+                {
+                    resp.send({"status": "failed", "message": "All fields are required"})
+                }
+        }catch (error){
+            console.log(error)
+            resp.send({"status": "failed", "message": "Invalid token"})
         }
     }
 }
